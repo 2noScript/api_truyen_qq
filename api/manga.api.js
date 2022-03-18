@@ -30,11 +30,16 @@ class Manga {
                     data.push(oneData)
                     // console.log(index)
                 })
-                res.json({
+                res.status(200).send({
                     status_code: 200,
                     count: data.length,
                     data: data,
                 })
+                // res.json({
+                //     status_code: 200,
+                //     count: data.length,
+                //     data: data,
+                // })
             }
 
         })
