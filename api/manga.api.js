@@ -2,10 +2,11 @@ const { HOME, MANGA } = require('../crawlSource/index')
 const cheerio = require('cheerio')
 const request = require('request')
 class Manga {
+    // get /suggest
     suggest(req, res) {
         request(HOME, (err, response, html) => {
             if (err) {
-                console.log(err)
+
                 res.json({
                     error: `${err.message}`
                 })
@@ -15,7 +16,7 @@ class Manga {
                 const data = []
                 const listSuggest = $('.homepage_suggest li')
                 listSuggest.each((index, item) => {
-                    var oneData = {
+                    var oneBook = {
                         book_name: $($(item).find('.book_avatar a img')).attr('alt'),
                         book_img: $($(item).find('.book_avatar a img')).attr('data-src'),
                         key: ($($(item).find('.book_info .book_name a')).attr('href')).replace(MANGA, ''),
@@ -26,26 +27,26 @@ class Manga {
                             return (s.replace('-chap-', '')).replace('.html', '')
                         })(),
                         time_ago: $($(item).find('.book_avatar .time-ago')).text(),
+
                     }
-                    data.push(oneData)
-                    // console.log(index)
+                    data.push(oneBook)
+
                 })
-                res.status(200).send({
+                res.json({
                     status_code: 200,
                     count: data.length,
                     data: data,
                 })
-                // res.json({
-                //     status_code: 200,
-                //     count: data.length,
-                //     data: data,
-                // })
             }
-
         })
-    }
-    // newUpdate(req, res) {
 
-    // }
+
+    }
+    // get /page
+
+
+
+
+
 }
 module.exports = new Manga;
