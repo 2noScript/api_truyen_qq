@@ -6,7 +6,6 @@ class Manga {
     suggest(req, res) {
         request(HOME, (err, response, html) => {
             if (err) {
-
                 res.json({
                     error: `${err.message}`
                 })
@@ -30,7 +29,6 @@ class Manga {
 
                     }
                     data.push(oneBook)
-
                 })
                 res.json({
                     status_code: 200,
