@@ -37,14 +37,7 @@ class Manga {
                 })
             }
         })
-
-
     }
-    // get /page
-
-
-
-
 
 }
 module.exports = new Manga;

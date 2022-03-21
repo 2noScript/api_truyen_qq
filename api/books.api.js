@@ -1,7 +1,8 @@
 const { HOME, MANGA, PAGE } = require('../crawlSource/index')
 const cheerio = require('cheerio')
 const request = require('request')
-
+const { getListBook } = require('./handle')
+const { status, country, keyID } = require('./base')
 /**  
  * *ID:
  *    0 default(mới cập nhật)
@@ -15,60 +16,37 @@ const request = require('request')
  *    8 truyện full
  *    9 truyện ngẫu nhiên
 */
-const keyID = ['truyen-moi-cap-nhat', 'truyen-con-gai', 'truyen-con-trai',
-    'top-ngay', 'top-tuan', 'top-thang', 'truyen-yeu-thich', 'truyen-tranh-moi',
-    'truyen-hoan-thanh', 'truyen-ngau-nhien']
+// const keyID = ['truyen-moi-cap-nhat', 'truyen-con-gai', 'truyen-con-trai',
+//     'top-ngay', 'top-tuan', 'top-thang', 'truyen-yeu-thich', 'truyen-tranh-moi',
+//     'truyen-hoan-thanh', 'truyen-ngau-nhien']
 // function custom raw html-> dataJson 
-function getListBook($) {
-    console.log(keyID[9])
-    const objListBook = $('#main_homepage .list_grid_out ul li')
-    const listBook = []
-    objListBook.each((index, item) => {
-        const oneBook = {
-            book_name: $($(item).find('.book_avatar a img')).attr('alt'),
-            book_img: $($(item).find('.book_avatar a img')).attr('data-src'),
-            key: ($($(item).find('.book_info .book_name a')).attr('href')).replace(MANGA, ''),
-            last_chapter: (() => {
-                let a = $($(item).find('.book_info .book_name a')).attr('href')
-                let b = $($(item).find('.book_info .last_chapter a')).attr('href')
-                let s = b.replace(a, '')
-                return (s.replace('-chap-', '')).replace('.html', '')
-            })(),
-            time_ago: $($(item).find('.book_avatar .time-ago')).text(),
-            more_info: {
-                // lượt theo dõi
-                info: (() => {
-                    const info = []
-                    const p = $(item).find('.book_info .more-info .info')
-                    p.each((ind, it) => {
-                        var src = $(it).text()
-                        src = src.slice(src.indexOf(":") + 2, src.length)
-                        info.push(src)
-                    })
-
-                    return {
-                        status: info[0],
-                        view: info[1],
-                        follow: info[2]
-                    }
-                })(),
-                list_tags: (() => {
-                    const tags = []
-                    const p = $(item).find('.book_info .more-info .list-tags .blue')
-                    p.each((ind, it) => {
-                        tags.push($(it).text())
-                    })
-                    return tags
-                })(),
-                excerpt: $($(item).find('.book_info .more-info .excerpt')).text(),
+function crawlDataToJson(req, res, urlRequest) {
+    request(urlRequest,
+        (err, response, html) => {
+            err && res.json({ error: err.message })
+            if (!keyID[req.params.id]) res.json({
+                status_code: 404,
+                message: `keyID ${keyID[req.params.id]}`
+            })
+            else {
+                const $ = cheerio.load(html)
+                const listBook = getListBook($)
+                res.json({
+                    status_code: 200,
+                    type: keyID[req.params.id] || 'undefinde or all',
+                    logs: {
+                        page: req.params.id,
+                        status: Object.keys(status)[req.query.status] || 'undefined or all',
+                        country: Object.keys(country)[req.query.country] || 'undefinded or all'
+                    },
+                    count: listBook.length,
+                    data: listBook
+                })
             }
-        }
-        listBook.push(oneBook)
-    })
-    return listBook
+        })
 }
-
-class Page {
+var urlRequest
+class books {
     /**
      * *ID:
      *    0 default(mới cập nhật)
@@ -94,71 +72,40 @@ class Page {
      *  
      *
      */
-    // pageID=value,staus=undefined,country=undefined
     index(req, res, next) {
-        if (req.query.status || req.query.country) next()
+        console.log(urlRequest)
+        crawlDataToJson(req, res, urlRequest)
+    }
+    handle(req, res, next) {
+        // page=value , status=null, country=null
+        if (!req.query.status && !req.query.country) {
+            urlRequest =
+                `${HOME}${keyID[req.params.id]}/trang-${req.query.page}`
+            next()
+        }
+        // page=value , status=value, country=null
+        else if (req.query.status && !req.query.country) {
+            urlRequest =
+                `${HOME}${keyID[req.params.id]}/trang-${req.query.page}?status=${Object.values(status)[req.query.status]}`
+            next()
+        }
+        // page=value , status=null,country=value
+        else if (!req.query.status && req.query.country) {
+            urlRequest =
+                `${HOME}${keyID[req.params.id]}/trang-${req.query.page}?country=${Object.values(country)[req.query.country]}`
+            next()
+        }
+        // page=value , status=value,country=value
         else {
-            request(`${HOME}${keyID[req.params.id]}/trang-${req.query.page}`,
-                (err, response, html) => {
-                    err && res.json({ error: err.message })
-                    const $ = cheerio.load(html)
-                    const listBook = getListBook($)
-                    res.json({
-                        type: keyID[req.params.id],
-                        count: listBook.length,
-                        data: listBook
-                    })
-                })
+            urlRequest =
+                `${HOME}${keyID[req.params.id]}/trang-${req.query.page}?status=${Object.values(status)[req.query.status]}&country=${Object.values(country)[req.query.country]}`
+            next()
         }
     }
-    //pageID=value,staus=value,country=undefined
-    filterStatus(req, res, next) {
-        if (!req.query.status || req.query.country) next()
-        else
-            request(`${HOME}${keyID[req.params.id]}/trang-${req.query.page}?status=${req.query.status}`,
-                (err, response, html) => {
-                    err && res.json({ error: err.message })
-                    const $ = cheerio.load(html)
-                    const listBook = getListBook($)
-                    res.json({
-                        count: listBook.length,
-                        data: listBook
-                    })
-                })
-    }
-    //pageID=value,staus=undefined,country=value
-
-    filterCountry(req, res, next) {
-        if (req.query.status || !req.query.country) next()
-        else
-            request(`${HOME}${keyID[req.params.id]}/trang-${req.query.page}?country=${req.query.country}`,
-                (err, response, html) => {
-                    err && res.json({ error: err.message })
-                    const $ = cheerio.load(html)
-                    const listBook = getListBook($)
-                    res.json({
-                        count: listBook.length,
-                        data: listBook
-                    })
-                })
-
-    }
-    //pageID=value,staus=value,country=value
-    filterStatusAndCountry(req, res, next) {
-        request(`${HOME}${keyID[req.params.id]}/trang-${req.query.page}?status=${req.query.status}&country=${req.query.country}`,
-            (err, response, html) => {
-                err && res.json({ error: err.message })
-                const $ = cheerio.load(html)
-                const listBook = getListBook($)
-                res.json({
-                    count: listBook.length,
-                    data: listBook
-                })
-            })
-    }
+    // get "/" 
     documents(req, res) {
         res.send('<a href="https://youtu.be/XsSC3mBJfok">đây là youtube của mình </a>')
     }
 
 }
-module.exports = new Page
+module.exports = new books
