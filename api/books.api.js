@@ -24,25 +24,19 @@ function crawlDataToJson(req, res, urlRequest) {
     request(urlRequest,
         (err, response, html) => {
             err && res.json({ error: err.message })
-            if (!keyID[req.params.id]) res.json({
-                status_code: 404,
-                message: `keyID ${keyID[req.params.id]}`
-            })
-            else {
-                const $ = cheerio.load(html)
-                const listBook = getListBook($)
-                res.json({
-                    status_code: 200,
+            const $ = cheerio.load(html)
+            const listBook = getListBook($)
+            res.json({
+                status_code: 200,
+                logs: {
                     type: keyID[req.params.id] || 'undefinde or all',
-                    logs: {
-                        page: req.params.id,
-                        status: Object.keys(status)[req.query.status] || 'undefined or all',
-                        country: Object.keys(country)[req.query.country] || 'undefinded or all'
-                    },
+                    page: req.query.page || 'underfinded or all',
+                    status: Object.keys(status)[req.query.status] || 'undefined or all',
+                    country: Object.keys(country)[req.query.country] || 'undefinded or all',
                     count: listBook.length,
-                    data: listBook
-                })
-            }
+                },
+                data: listBook
+            })
         })
 }
 var urlRequest
@@ -77,30 +71,30 @@ class books {
         crawlDataToJson(req, res, urlRequest)
     }
     handle(req, res, next) {
+
+        const subUrl = `${HOME}${keyID[req.params.id]}/trang-${req.query.page}`
         // page=value , status=null, country=null
-        if (!req.query.status && !req.query.country) {
+        if (!req.query.status && !req.query.country)
             urlRequest =
-                `${HOME}${keyID[req.params.id]}/trang-${req.query.page}`
-            next()
-        }
+                `${subUrl}`
+
+
         // page=value , status=value, country=null
-        else if (req.query.status && !req.query.country) {
+        else if (req.query.status && !req.query.country)
             urlRequest =
-                `${HOME}${keyID[req.params.id]}/trang-${req.query.page}?status=${Object.values(status)[req.query.status]}`
-            next()
-        }
+                `${subUrl}?status=${Object.values(status)[req.query.status]}`
+
         // page=value , status=null,country=value
-        else if (!req.query.status && req.query.country) {
+        else if (!req.query.status && req.query.country)
             urlRequest =
-                `${HOME}${keyID[req.params.id]}/trang-${req.query.page}?country=${Object.values(country)[req.query.country]}`
-            next()
-        }
+                `${subUrl}?country=${Object.values(country)[req.query.country]}`
+
         // page=value , status=value,country=value
-        else {
+        else
             urlRequest =
-                `${HOME}${keyID[req.params.id]}/trang-${req.query.page}?status=${Object.values(status)[req.query.status]}&country=${Object.values(country)[req.query.country]}`
-            next()
-        }
+                `${subUrl}?status=${Object.values(status)[req.query.status]}&country=${Object.values(country)[req.query.country]}`
+
+        next()
     }
     // get "/" 
     documents(req, res) {

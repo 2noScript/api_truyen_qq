@@ -46,5 +46,53 @@ module.exports = {
             listBook.push(oneBook)
         })
         return listBook
+    },
+    getDetailBook: ($, urlRequest) => {
+        var listChap = []
+        const info = {
+            name: $('.book_info .book_avatar img').attr('alt'),
+            other_name: $('.book_info .list-info .other-name').text() || 'unknown',
+            avatar: $('.book_info .book_avatar img').attr('src'),
+            author: $('.book_info .list-info .author a').text(),
+            status: $('.book_info .list-info .status p.col-xs-9').text(),
+            like: $('.book_info .list-info .number-like').text(),
+            follow: (() => {
+                const li = $('.book_info .txt .list-info li')
+                return li.length > 5 ?
+                    $(li[4]).find('.col-xs-9').text() :
+                    $(li[3]).find('.col-xs-9').text()
+            })(),
+            view: (() => {
+                const li = $('.book_info .txt .list-info li')
+                return li.length > 5 ?
+                    $(li[5]).find('.col-xs-9').text() :
+                    $(li[4]).find('.col-xs-9').text()
+            })(),
+            tags: (() => {
+                const a = $('.book_info .list01 li a')
+                var tagz = []
+                a.each((i, it) => {
+                    tagz.push($(it).text())
+                })
+                return tagz
+            })(),
+            excerpt: $('.book_detail .story-detail-info.detail-content p').text(),
+        }
+        const ls = $('.list_chapter .works-chapter-item')
+        ls.each((index, item) => {
+            const oneChap = {
+                date: ($($(item).find('.time-chap')).text()).replace(/\s/g, ''),
+                chapter: ($($(item).find('.name-chap a')).text()).replace('Chương ', ''),
+                key_chap: (() => {
+                    var str = ($($(item).find('.name-chap a')).attr('href')).replace(`${urlRequest}-chap-`, '')
+                    return str.replace('.html', '')
+                })()
+            }
+            listChap.push(oneChap)
+        })
+        return {
+            info: info,
+            list_chap: listChap
+        }
     }
 }
